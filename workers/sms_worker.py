@@ -2,6 +2,8 @@ import logging
 import asyncio
 import json
 import aio_pika
+from pydantic import ValidationError
+from api.schemas import SmsEvent
 
 logging.basicConfig(
     filename="logs/sms_worker.log",
@@ -15,11 +17,21 @@ EXCHANGE_NAME = "events"
 QUEUE_NAME = "sms_queue"
 ROUTING_KEY = "user.sms"
 
+
 async def process_message(message: aio_pika.IncomingMessage):
-    async with message.process(requeue=False):
+    try:
         payload = json.loads(message.body)
-        logging.info(f"Send SMS to {payload.get('phone')}")
-        logging.info(f"Message: {payload['message']}")
+        event = SmsEvent(**payload)
+
+        logging.info(f"Send SMS to {event.phone}")
+        logging.info(f"Message: {event.message}")
+
+        await message.ack()
+
+    except ValidationError as e:
+        logging.error(f"Invalid sms event: {e}")
+        await message.reject(requeue=False)
+
 
 async def main():
     connection = await aio_pika.connect_robust(RABBIT_URL)

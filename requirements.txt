@@ -2,3 +2,4 @@ fastapi
 uvicorn[standard]
 aio-pika
 pydantic
+email-validator
