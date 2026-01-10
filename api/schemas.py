@@ -1,5 +1,5 @@
 from enum import Enum
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 
 class EventType(str, Enum):
@@ -15,7 +15,31 @@ class NotificationEvent(BaseModel):
     email: str | None = None
     phone: str | None = None
     device_id: str | None = None
-    message: str
+    message: str = Field(
+        ...,
+        min_length=1,
+        description="Message must not be empty"
+    )
+
+    @model_validator(mode="after")
+    def validate_by_event_type(self):
+        match self.event_type:
+            case EventType.EMAIL:
+                if not self.email:
+                    raise ValueError("email is required for user.email event")
+
+            case EventType.SMS:
+                if not self.phone:
+                    raise ValueError("phone is required for user.sms event")
+
+            case EventType.PUSH:
+                if not self.device_id:
+                    raise ValueError("device_id is required for user.push event")
+
+            case EventType.ANALYTICS:
+                pass  # только message обязателен
+
+        return self
 
 
 class EmailEvent(BaseModel):
