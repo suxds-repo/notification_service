@@ -1,6 +1,6 @@
 from enum import Enum
-from pydantic import BaseModel, EmailStr, Field, model_validator
-
+from pydantic import BaseModel, EmailStr, Field, model_validator, field_validator
+import re
 
 class EventType(str, Enum):
     EMAIL = "user.email"
@@ -52,5 +52,12 @@ class EmailEvent(BaseModel):
 class SmsEvent(BaseModel):
     event_type: str = Field(pattern=r"user\.sms")
     user_id: int
-    phone: str
-    message: str
+    phone: str = Field(..., min_length=10, max_length=16)  # базовая валидация длины
+    message: str = Field(..., min_length=1)
+
+    @field_validator("phone")
+    def check_phone(cls, v):
+
+        if not re.fullmatch(r"^\+\d{10,15}$", v):
+            raise ValueError("Phone must be in international format, e.g., +71234567890")
+        return v
