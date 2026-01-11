@@ -13,10 +13,12 @@ logging.basicConfig(
 RABBIT_URL = "amqp://guest:guest@rabbitmq/"
 EXCHANGE_NAME = "events"
 
+
 async def process_message(message: aio_pika.IncomingMessage):
     async with message.process():
         payload = json.loads(message.body)
         logging.info(f"Event received: {payload}")
+
 
 async def main():
     connection = await aio_pika.connect_robust(RABBIT_URL)
@@ -35,6 +37,7 @@ async def main():
 
     logging.info("Logger worker started")
     await asyncio.Future()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

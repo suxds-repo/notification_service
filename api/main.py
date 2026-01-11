@@ -1,8 +1,8 @@
 import json
+import aio_pika
 from fastapi import FastAPI
 from api.rabbit import get_exchange
 from api.schemas import NotificationEvent
-import aio_pika
 
 app = FastAPI()
 
@@ -16,11 +16,9 @@ async def publish_event(event: NotificationEvent):
         delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
     )
 
-    # routing_key теперь строго соответствует EventType
     await exchange.publish(
         message,
         routing_key=event.event_type,
     )
 
     return {"status": "sent", "event": event.event_type}
-

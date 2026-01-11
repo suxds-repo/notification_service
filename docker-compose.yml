@@ -7,10 +7,17 @@ services:
       - "5672:5672"
       - "15672:15672"
     healthcheck:
-      test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 5s
       timeout: 5s
       retries: 5
+
+  rabbit-init:
+    build: .
+    command: python api/init_rabbit.py
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 
   api:
     build: .
@@ -18,14 +25,24 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      - rabbitmq
+      rabbit-init:
+        condition: service_completed_successfully
 
   email_worker:
     build: .
     command: python workers/email_worker.py
     depends_on:
-      rabbitmq:
-        condition: service_healthy
+      rabbit-init:
+        condition: service_completed_successfully
+    volumes:
+      - ./logs:/app/logs
+
+  sms_worker:
+    build: .
+    command: python workers/sms_worker.py
+    depends_on:
+      rabbit-init:
+        condition: service_completed_successfully
     volumes:
       - ./logs:/app/logs
 
@@ -33,17 +50,7 @@ services:
     build: .
     command: python workers/log_worker.py
     depends_on:
-      rabbitmq:
-        condition: service_healthy
-    volumes:
-      - ./logs:/app/logs
-
-
-  sms_worker:
-    build: .
-    command: python workers/sms_worker.py
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
+      rabbit-init:
+        condition: service_completed_successfully
     volumes:
       - ./logs:/app/logs
